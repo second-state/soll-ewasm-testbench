@@ -1,24 +1,48 @@
 #!/usr/bin/env node
 'strict';
-if (process.argv.length != 3) {
-    console.log(`usage: ${process.argv[1]} ewasm-file`);
+if (process.argv.length != 6) {
+    console.log(`usage: ${process.argv[1]} ewasm-file func-sig arg1 arg2`);
     process.exit(0)
 }
 
 let fs = require('fs');
 
 class Environment {
-    constructor (data = {}) {
-        const defaults = {
-            callData: new Uint8Array([
-                0xf7, 0x02, 0x16, 0x77, // add
-                //0xc5, 0x77, 0x7d, 0xb6, // sub
-                //0x9c, 0xac, 0xa4, 0xc8, // mul
-                //0x5b, 0xc1, 0x91, 0xa3, // div
-                //0x3a, 0x52, 0x3f, 0xf4, // mod
-                0xa0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0xa0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            ])
+    constructor (funcSig, arg1, arg2, data = {}) {
+        let defaults = {
+            callData: new Uint8Array(20).fill(0x00)
+        };
+        let setCallData = (data, offset) => {
+            data.match(/.{2}/g).reverse().forEach((value, i) => {
+                defaults.callData[offset + i] = parseInt(value, 16);
+            });
+        };
+        switch (funcSig) {
+            case 'add':
+                setCallData('771602f7', 0);
+                break;
+            case 'sub':
+                setCallData('b67d77c5', 0);
+                break;
+            case 'mul':
+                setCallData('c8a4ac9c', 0);
+                break;
+            case 'div':
+                setCallData('a391c15b', 0);
+                break;
+            case 'mod':
+                setCallData('f43f523a', 0);
+                break;
+            default:
+                if (/^([0-9a-f][0-9a-f])+$/i.test(funcSig))
+                    setCallData(funcSig, 0);
+                break;
+        }
+        arg1 = parseInt(arg1);
+        arg2 = parseInt(arg2);
+        if (arg1 && arg2) {
+            setCallData(arg1.toString(16).padStart(16, '0'), 4);
+            setCallData(arg2.toString(16).padStart(16, '0'), 12);
         }
         Object.assign(this, defaults, data)
     }
@@ -81,7 +105,7 @@ class Interface {
     finish(offset, length) {
         console.log(`finish(${offset}, ${length})`);
         const data = this.getMemory(offset, length)
-        console.log(data);
+        console.log(Array.from(data).map((value) => value.toString(16).padStart(2, '0')));
         process.exit(0);
     }
     revert(offset, length) {
@@ -97,7 +121,7 @@ class Interface {
 };
 
 let kernel = {
-    environment: new Environment(),
+    environment: new Environment(...process.argv.slice(3, 6)),
 };
 
 let interface = new Interface(kernel);
