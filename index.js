@@ -31,8 +31,8 @@ class Environment {
         this.storage = JSON.parse(storage);
         return true;
     }
-
 }
+
 class Interface {
     get exports() {
         let ret = {
@@ -48,6 +48,7 @@ class Interface {
             'callDataCopy',
             'storageStore',
             'storageLoad',
+            'log',
             'finish',
             'revert',
             'callStatic',
@@ -98,13 +99,13 @@ class Interface {
         this.takeGas(2);
         return this.env.callData.length;
     }
-    callDataCopy(offset, dataOffset, length) {
-        console.log(`callDataCopy(${offset}, ${dataOffset}, ${length})`);
+    callDataCopy(resultOffset, dataOffset, length) {
+        console.log(`callDataCopy(${resultOffset}, ${dataOffset}, ${length})`);
         this.takeGas(3 + Math.ceil(length / 32) * 3)
 
         if (length) {
             const callData = this.env.callData.slice(dataOffset, dataOffset + length)
-            this.setMemory(offset, length, callData)
+            this.setMemory(resultOffset, length, callData)
         }
     }
     storageStore(pathOffset, valueOffset) {
@@ -128,15 +129,41 @@ class Interface {
             console.log(`storageLoad(${path}) = 0`);
         }
     }
-    finish(offset, length) {
-        console.log(`finish(${offset}, ${length})`);
-        const data = this.getMemory(offset, length)
+    log(dataOffset, dataLength, numberOfTopics, topic1, topic2, topic3, topic4) {
+        console.log(`log(${dataOffset}, ${dataLength}, ${numberOfTopics}, ${topic1}, ${topic2}, ${topic3}, ${topic4})`);
+        this.takeGas(375 + (375 * numberOfTopics) + (8 * dataLength));
+        if (dataLength >= 1) {
+            const data = this.getMemory(dataOffset, dataLength);
+            console.log(data);
+        }
+        if (numberOfTopics >= 1) {
+            const t1 = this.getMemory(topic1, 32);
+            console.log(t1);
+            const hex = Buffer.from(t1).toString('hex');
+            console.log('signature: ' + hex);
+        }
+        if (numberOfTopics >= 2) {
+            const t2 = this.getMemory(topic2, 32);
+            console.log(t2);
+        }
+        if (numberOfTopics >= 3) {
+            const t3 = this.getMemory(topic3, 32);
+            console.log(t3);
+        }
+        if (numberOfTopics >= 4) {
+            const t4 = this.getMemory(topic4, 32);
+            console.log(t4);
+        }
+    }
+    finish(dataOffset, dataLength) {
+        console.log(`finish(${dataOffset}, ${dataLength})`);
+        const data = this.getMemory(dataOffset, dataLength)
         this.env.returnData = data;
         throw new Error('finish');
     }
-    revert(offset, length) {
-        console.log(`revert(${offset}, ${length})`);
-        const data = this.getMemory(offset, length)
+    revert(dataOffset, dataLength) {
+        console.log(`revert(${dataOffset}, ${dataLength})`);
+        const data = this.getMemory(dataOffset, dataLength)
         this.env.returnData = data;
         console.log(data);
         console.log(String.fromCharCode.apply(null, data));
