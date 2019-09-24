@@ -12,6 +12,7 @@ class Environment {
         this.callData = new Uint8Array(0);
         this.returnData = new Uint8Array(0);
         this.caller = '1234567890123456789012345678901234567890';
+        this.callValue = '123456789071227122712271227122';
     }
     setCallData(callData) {
         if (!/^([0-9a-f][0-9a-f])+$/i.test(callData)) {
@@ -54,6 +55,7 @@ class Interface {
             'callStatic',
             'returnDataCopy',
             'getCaller',
+            'getCallValue',
         ].forEach((method) => {
             ret.ethereum[method] = this[method].bind(this);
         });
@@ -204,6 +206,13 @@ class Interface {
         const data = this.env.caller.padStart(40, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 20, data);
         console.log(`getCaller = ${data}`);
+    }
+
+    getCallValue(resultOffset) {
+        console.log(`getCallValue(${resultOffset})`);
+        const data = this.env.callValue.padStart(32, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        this.setMemory(resultOffset, 16, data);
+        console.log(`getCallValue = ${data}`);
     }
 
     print32(value) {
