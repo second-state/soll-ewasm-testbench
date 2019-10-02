@@ -56,6 +56,7 @@ class Interface {
             'returnDataCopy',
             'getCaller',
             'getCallValue',
+            'getGasLeft',
         ].forEach((method) => {
             ret.ethereum[method] = this[method].bind(this);
         });
@@ -207,12 +208,15 @@ class Interface {
         this.setMemory(resultOffset, 20, data);
         console.log(`getCaller = ${data}`);
     }
-
     getCallValue(resultOffset) {
         console.log(`getCallValue(${resultOffset})`);
         const data = this.env.callValue.padStart(32, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 16, data);
         console.log(`getCallValue = ${data}`);
+    }
+    getGasLeft() {
+        console.log(`getGasLeft(${this.env.gasLeft})`);
+        return this.env.gasLeft;
     }
 
     print32(value) {
