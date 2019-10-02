@@ -13,6 +13,13 @@ class Environment {
         this.returnData = new Uint8Array(0);
         this.caller = '1234567890123456789012345678901234567890';
         this.callValue = 'ffffffffffffffffffffffffffffffff';
+        this.txGasPrice = '1f3f33ff5fabc5fdff67890feff12345';
+        this.txOrigin = '1234567890123456789012345678901234567890';
+        this.blockCoinbase = '1234567890123456789012345678901234567890';
+        this.blockDifficulty = '1f3f33ff5fabc5fdff67890feff123451f3f33ff5fabc5fdff67890feff12345';
+        this.gasLimit = 1000;
+        this.blockNumber = 3456;
+        this.blockTimestamp = 6666;
     }
     setCallData(callData) {
         if (!/^([0-9a-f][0-9a-f])+$/i.test(callData)) {
@@ -56,7 +63,14 @@ class Interface {
             'returnDataCopy',
             'getCaller',
             'getCallValue',
-            'getGasLeft',
+            'getTxGasPrice',
+            'getTxOrigin',
+            'getBlockCoinbase',
+            'getBlockDifficulty',
+            'getBlockGasLimit',
+            'getBlockNumber',
+            'getBlockTimestamp',
+            'getGasLeft'
         ].forEach((method) => {
             ret.ethereum[method] = this[method].bind(this);
         });
@@ -217,6 +231,49 @@ class Interface {
     getGasLeft() {
         console.log(`getGasLeft(${this.env.gasLeft})`);
         return this.env.gasLeft;
+    }
+
+    getTxGasPrice(valueOffset) {
+        console.log(`getTxGasPrice(${valueOffset})`);
+        const data = this.env.txGasPrice.padStart(32, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        this.setMemory(valueOffset, 16, data);
+        console.log(`getTxGasPrice = ${data}`);
+    }
+
+    getTxOrigin(resultOffset) {
+        console.log(`getTxOrigin(${resultOffset})`);
+        const data = this.env.txOrigin.padStart(40, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        this.setMemory(resultOffset, 20, data);
+        console.log(`getTxOrigin = ${data}`);
+    }
+
+    getBlockCoinbase(resultOffset) {
+        console.log(`getBlockCoinbase(${resultOffset})`);
+        const data = this.env.blockCoinbase.padStart(40, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        this.setMemory(resultOffset, 20, data);
+        console.log(`getBlockCoinbase = ${data}`);
+    }
+
+    getBlockDifficulty(resultOffset) {
+        console.log(`getBlockDifficulty(${resultOffset})`);
+        const data = this.env.blockDifficulty.padStart(64, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        this.setMemory(resultOffset, 32, data);
+        console.log(`getBlockDifficulty = ${data}`);
+    }
+
+    getBlockGasLimit() {
+        console.log(`getBlockGasLimit() = ${this.env.gasLimit}`);
+        return ;
+    }
+
+    getBlockNumber() {
+        console.log(`getBlockNumber() = ${this.env.blockNumber}`);
+        return ;
+    }
+
+    getBlockTimestamp() {
+        console.log(`getBlockTimestamp() = ${this.env.blockTimestamp}`);
+        return ;
     }
 
     print32(value) {
