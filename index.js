@@ -50,30 +50,16 @@ class Interface {
             },
         };
 
-        [
-            'useGas',
-            'getCallDataSize',
-            'callDataCopy',
-            'storageStore',
-            'storageLoad',
-            'log',
-            'finish',
-            'revert',
-            'callStatic',
-            'returnDataCopy',
-            'getCaller',
-            'getCallValue',
-            'getTxGasPrice',
-            'getTxOrigin',
-            'getBlockCoinbase',
-            'getBlockDifficulty',
-            'getBlockGasLimit',
-            'getBlockNumber',
-            'getBlockTimestamp',
-            'getGasLeft'
-        ].forEach((method) => {
+        // binding EEI functions
+        this.eei.forEach((method) => {
             ret.ethereum[method] = this[method].bind(this);
         });
+
+        // javascript doesn't support EEI with i64 parameter/return value, so binding to wrapper wasm function
+        this.hooks.forEach((method) => {
+            ret.ethereum[method] = this.eei_wrapper.instance.exports[method];
+        });
+
         [
             'print32',
         ].forEach((method) => {
@@ -84,6 +70,38 @@ class Interface {
     }
     constructor(env) {
         this.env = env;
+        this.eei = [
+            'useGas',
+            'getCallDataSize',
+            'callDataCopy',
+            'storageStore',
+            'storageLoad',
+            'log',
+            'finish',
+            'revert',
+            'returnDataCopy',
+            'getCaller',
+            'getCallValue',
+            'getTxGasPrice',
+            'getTxOrigin',
+            'getBlockCoinbase',
+            'getBlockDifficulty',
+            'getBlockGasLimit',
+            'getBlockNumber',
+            'getBlockTimestamp',
+        ];
+        this.hooks = [
+            'getGasLeft',
+            'callStatic',
+        ];
+    }
+    async connect() {
+        let hooks = {};
+        this.hooks.forEach((method) => {
+            hooks[method] = this[method].bind(this);
+        });
+        // EEI hook function injection
+        this.eei_wrapper = await WebAssembly.instantiate(fs.readFileSync("lib/wrapper.wasm"), { ethereum: hooks});
     }
     getMemory(offset, length) {
         return new Uint8Array(this.mem.buffer, offset, length);
@@ -112,38 +130,39 @@ class Interface {
         //takeGas(gas);
     }
     getCallDataSize() {
-        console.log(`getCallDataSize() = ${this.env.callData.length}`);
+        console.log(`getCallDataSize()`);
         this.takeGas(2);
+        console.log(`{ size: ${this.env.callData.length} }`);
         return this.env.callData.length;
     }
     callDataCopy(resultOffset, dataOffset, length) {
         console.log(`callDataCopy(${resultOffset}, ${dataOffset}, ${length})`);
         this.takeGas(3 + Math.ceil(length / 32) * 3)
-
         if (length) {
-            const callData = this.env.callData.slice(dataOffset, dataOffset + length)
-            this.setMemory(resultOffset, length, callData)
+            const callData = this.env.callData.slice(dataOffset, dataOffset + length);
+            this.setMemory(resultOffset, length, callData);
+            console.log(`{ data: ${this.toHex(callData)} }`);
         }
     }
     storageStore(pathOffset, valueOffset) {
         console.log(`storageStore(${pathOffset}, ${valueOffset})`);
-        const path = this.toBigInt('0x' + this.toLEHex(this.getMemory(pathOffset, 32))).toString(16);
-        const value = this.toBigInt('0x' + this.toLEHex(this.getMemory(valueOffset, 32))).toString(16);
-        console.log(`storageStore(${path}, ${value})`);
+        const path = this.toBigInt('0x' + this.toHex(this.getMemory(pathOffset, 32))).toString(16);
+        const value = this.toBigInt('0x' + this.toHex(this.getMemory(valueOffset, 32))).toString(16);
         this.env.storage[path] = value;
+        console.log(`{ key: ${path}, value: ${value} }`);
     }
     storageLoad(pathOffset, valueOffset) {
         console.log(`storageLoad(${pathOffset}, ${valueOffset})`);
-        const path = this.toBigInt('0x' + this.toLEHex(this.getMemory(pathOffset, 32))).toString(16);
+        const path = this.toBigInt('0x' + this.toHex(this.getMemory(pathOffset, 32))).toString(16);
         if (path in this.env.storage) {
             let value = this.env.storage[path];
-            const data = value.padStart(64, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+            const data = value.padStart(64, '0').match(/.{2}/g).map(value => parseInt(value, 16));
             this.setMemory(valueOffset, 32, data);
-            console.log(`storageLoad(${path}) = ${value}`);
+            console.log(`{ key: ${path}, value: ${value} }`);
         } else {
             const data = Array(32).fill(0);
             this.setMemory(valueOffset, 32, data);
-            console.log(`storageLoad(${path}) = 0`);
+            console.log(`{ key: ${path}, value: 0 }`);
         }
     }
     log(dataOffset, dataLength, numberOfTopics, topic1, topic2, topic3, topic4) {
@@ -151,25 +170,25 @@ class Interface {
         this.takeGas(375 + (375 * numberOfTopics) + (8 * dataLength));
         if (dataLength >= 1) {
             const data = this.getMemory(dataOffset, dataLength);
-            console.log(data);
+            console.log(`{ data: ${this.toHex(data)} }`);
         }
         if (numberOfTopics >= 1) {
             const t1 = this.getMemory(topic1, 32);
             console.log(t1);
             const hex = Buffer.from(t1).toString('hex');
-            console.log('signature: ' + hex);
+            console.log(`{ signature: ${this.toHex(hex)} }`);
         }
         if (numberOfTopics >= 2) {
             const t2 = this.getMemory(topic2, 32);
-            console.log(t2);
+            console.log(`{ t2: ${t2} }`);
         }
         if (numberOfTopics >= 3) {
             const t3 = this.getMemory(topic3, 32);
-            console.log(t3);
+            console.log(`{ t3: ${t3} }`);
         }
         if (numberOfTopics >= 4) {
             const t4 = this.getMemory(topic4, 32);
-            console.log(t4);
+            console.log(`{ t4: ${t4} }`);
         }
     }
     finish(dataOffset, dataLength) {
@@ -189,90 +208,93 @@ class Interface {
     }
     callStatic(gas, addressOffset, dataOffset, dataLength) {
         console.log(`callStatic(${gas}, ${addressOffset}, ${dataOffset}, ${dataLength})`);
-        const address = this.toBigInt('0x' + this.toLEHex(this.getMemory(addressOffset, 20)));
+        const address = this.toBigInt('0x' + this.toHex(this.getMemory(addressOffset, 20)));
         const data = this.getMemory(dataOffset, dataLength);
-        console.log(`callStatic(${gas}, ${address}, ${data})`);
+        console.log(`{ address: ${address}, data: ${this.toHex(data)} }`);
 
         let vm;
         switch (address) {
-            case BigInt(9):
+            case BigInt(2): // Sha256
+            case BigInt(9): // Keccak256
                 vm = precompiled.keccak256;
                 break;
             default:
                 return 1;
         }
-
         vm.run(this.toHex(data));
 
         this.env.returnData = vm.env.returnData;
-        console.log(`returnData = ${vm.env.returnData}`)
         return 0;
     }
     returnDataCopy(resultOffset, dataOffset, length) {
         console.log(`returnDataCopy(${resultOffset}, ${dataOffset}, ${length})`);
-
         if (length) {
             const callData = this.env.returnData.slice(dataOffset, dataOffset + length);
             this.setMemory(resultOffset, length, callData);
+            console.log(`{ data: ${this.toHex(callData)} }`)
         }
     }
     getCaller(resultOffset) {
         console.log(`getCaller(${resultOffset})`);
-        const data = this.env.caller.padStart(40, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        const data = this.env.caller.padStart(40, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 20, data);
-        console.log(`getCaller = ${data}`);
+        console.log(`{ caller: ${this.toHex(data)} }`);
     }
     getCallValue(resultOffset) {
         console.log(`getCallValue(${resultOffset})`);
-        const data = this.env.callValue.padStart(32, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        const data = this.env.callValue.padStart(32, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 16, data);
-        console.log(`getCallValue = ${data}`);
+        console.log(`{ value: ${data} }`);
     }
     getGasLeft() {
-        console.log(`getGasLeft(${this.env.gasLeft})`);
+        console.log(`getGasLeft()`);
+        console.log(`{ gas: ${this.env.gasLeft} }`);
         return this.env.gasLeft;
     }
 
     getTxGasPrice(valueOffset) {
         console.log(`getTxGasPrice(${valueOffset})`);
-        const data = this.env.txGasPrice.padStart(32, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        const data = this.env.txGasPrice.padStart(32, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(valueOffset, 16, data);
-        console.log(`getTxGasPrice = ${data}`);
+        console.log(`{ price: ${data} }`);
     }
 
     getTxOrigin(resultOffset) {
         console.log(`getTxOrigin(${resultOffset})`);
-        const data = this.env.txOrigin.padStart(40, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        const data = this.env.txOrigin.padStart(40, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 20, data);
-        console.log(`getTxOrigin = ${data}`);
+        console.log(`orig = ${data}`);
     }
 
     getBlockCoinbase(resultOffset) {
         console.log(`getBlockCoinbase(${resultOffset})`);
-        const data = this.env.blockCoinbase.padStart(40, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        const data = this.env.blockCoinbase.padStart(40, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 20, data);
-        console.log(`getBlockCoinbase = ${data}`);
+        console.log(`{ coinbase: ${data} }`);
     }
 
     getBlockDifficulty(resultOffset) {
         console.log(`getBlockDifficulty(${resultOffset})`);
-        const data = this.env.blockDifficulty.padStart(64, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        const data = this.env.blockDifficulty.padStart(64, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 32, data);
-        console.log(`getBlockDifficulty = ${data}`);
+        console.log(`{ difficulty: ${data} }`);
     }
 
     getBlockGasLimit() {
-        console.log(`getBlockGasLimit() = ${this.env.gasLimit}`);
+        console.log(`getBlockGasLimit()`);
+        console.log(`{ gas: ${this.env.gasLimit} }`);
         return ;
     }
 
     getBlockNumber() {
-        console.log(`getBlockNumber() = ${this.env.blockNumber}`);
+        console.log(`getBlockNumber()`);
+        console.log(`{ block: ${this.env.blockNumber} }`);
         return ;
     }
 
     getBlockTimestamp() {
-        console.log(`getBlockTimestamp() = ${this.env.blockTimestamp}`);
+        console.log(`getBlockTimestamp()`);
+        console.log(`{ timestamp: ${this.env.blockTimestamp} }`);
         return ;
     }
 
@@ -288,6 +310,7 @@ class VM {
         this.path = path;
     }
     async instantiate() {
+        await this.int.connect();
         this.vm = await WebAssembly.instantiate(fs.readFileSync(this.path), this.int.exports);
         this.int.mem = this.vm.instance.exports.memory;
     }
@@ -318,7 +341,7 @@ async function main(path, callData, storage) {
     let vm = new VM(path);
     await vm.instantiate();
     vm.run(callData, storage);
-    return [vm.env.returnData, vm.env.getStorage()];
+    return {returnData: vm.env.returnData, Storage: vm.env.getStorage()};
 };
 
 if (require.main === module) {
