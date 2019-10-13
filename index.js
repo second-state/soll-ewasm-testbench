@@ -16,8 +16,8 @@ class Environment {
         this.txGasPrice = '1f3f33ff5fabc5fdff67890feff12345';
         this.txOrigin = '1234567890123456789012345678901234567890';
         this.blockCoinbase = '1234567890123456789012345678901234567890';
-        this.blockDifficulty = '1f3f33ff5fabc5fdff67890feff123451f3f33ff5fabc5fdff67890feff12345';
-        this.gasLimit = 1000;
+        this.blockDifficulty = '0000000000000000000000000000000000000000000000000000405BBD86CA28';
+        this.gasLimit = 21000;
         this.blockNumber = 3456;
         this.blockTimestamp = 6666;
     }
