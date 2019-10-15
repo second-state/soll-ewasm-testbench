@@ -1,23 +1,10 @@
 #!/usr/bin/env node
 'strict';
 let fs = require('fs');
+let utils = require('./utils');
 let precompiled = {
     keccak256: null
 };
-
-let Utils = (function(){
-    return {
-        toHex: function (data) {
-            return Array.from(data).map((value) => value.toString(16).padStart(2, '0')).join('');
-        },
-        toLEHex: function (data) {
-            return Array.from(data).map((value) => value.toString(16).padStart(2, '0')).reverse().join('');
-        },
-        toBigInt: function (hexRepr) {
-            return BigInt(hexRepr);
-        }
-    }
-}())
 
 class Environment {
     constructor() {
@@ -148,19 +135,19 @@ class Interface {
         if (length) {
             const callData = this.env.callData.slice(dataOffset, dataOffset + length);
             this.setMemory(resultOffset, length, callData);
-            console.log(`{ data: ${Utils.toHex(callData)} }`);
+            console.log(`{ data: ${utils.toHex(callData)} }`);
         }
     }
     storageStore(pathOffset, valueOffset) {
         console.log(`storageStore(${pathOffset}, ${valueOffset})`);
-        const path = Utils.toBigInt('0x' + Utils.toHex(this.getMemory(pathOffset, 32))).toString(16);
-        const value = Utils.toBigInt('0x' + Utils.toHex(this.getMemory(valueOffset, 32))).toString(16);
+        const path = utils.toBigInt('0x' + utils.toHex(this.getMemory(pathOffset, 32))).toString(16);
+        const value = utils.toBigInt('0x' + utils.toHex(this.getMemory(valueOffset, 32))).toString(16);
         this.env.storage[path] = value;
         console.log(`{ key: ${path}, value: ${value} }`);
     }
     storageLoad(pathOffset, valueOffset) {
         console.log(`storageLoad(${pathOffset}, ${valueOffset})`);
-        const path = Utils.toBigInt('0x' + Utils.toHex(this.getMemory(pathOffset, 32))).toString(16);
+        const path = utils.toBigInt('0x' + utils.toHex(this.getMemory(pathOffset, 32))).toString(16);
         if (path in this.env.storage) {
             let value = this.env.storage[path];
             const data = value.padStart(64, '0').match(/.{2}/g).map(value => parseInt(value, 16));
@@ -177,23 +164,23 @@ class Interface {
         this.takeGas(375 + (375 * numberOfTopics) + (8 * dataLength));
         if (dataLength >= 1) {
             const data = this.getMemory(dataOffset, dataLength);
-            console.log(`{ data: ${Utils.toHex(data)} }`);
+            console.log(`{ data: ${utils.toHex(data)} }`);
         }
         if (numberOfTopics >= 1) {
             const t1 = this.getMemory(topic1, 32);
-            console.log(`{ signature: ${Utils.toHex(t1)} }`);
+            console.log(`{ signature: ${utils.toHex(t1)} }`);
         }
         if (numberOfTopics >= 2) {
             const t2 = this.getMemory(topic2, 32);
-            console.log(`{ t2: ${Utils.toHex(t2)} }`);
+            console.log(`{ t2: ${utils.toHex(t2)} }`);
         }
         if (numberOfTopics >= 3) {
             const t3 = this.getMemory(topic3, 32);
-            console.log(`{ t3: ${Utils.toHex(t3)} }`);
+            console.log(`{ t3: ${utils.toHex(t3)} }`);
         }
         if (numberOfTopics >= 4) {
             const t4 = this.getMemory(topic4, 32);
-            console.log(`{ t4: ${Utils.toHex(t4)} }`);
+            console.log(`{ t4: ${utils.toHex(t4)} }`);
         }
     }
     finish(dataOffset, dataLength) {
@@ -212,9 +199,9 @@ class Interface {
     }
     callStatic(gas, addressOffset, dataOffset, dataLength) {
         console.log(`callStatic(${gas}, ${addressOffset}, ${dataOffset}, ${dataLength})`);
-        const address = Utils.toBigInt('0x' + Utils.toHex(this.getMemory(addressOffset, 20)));
+        const address = utils.toBigInt('0x' + utils.toHex(this.getMemory(addressOffset, 20)));
         const data = this.getMemory(dataOffset, dataLength);
-        console.log(`{ address: ${address}, data: ${Utils.toHex(data)} }`);
+        console.log(`{ address: ${address}, data: ${utils.toHex(data)} }`);
 
         let vm;
         switch (address) {
@@ -225,7 +212,7 @@ class Interface {
             default:
                 return 1;
         }
-        vm.run(Utils.toHex(data));
+        vm.run(utils.toHex(data));
 
         this.env.returnData = vm.env.returnData;
         return 0;
@@ -235,20 +222,20 @@ class Interface {
         if (length) {
             const callData = this.env.returnData.slice(dataOffset, dataOffset + length);
             this.setMemory(resultOffset, length, callData);
-            console.log(`{ data: ${Utils.toHex(callData)} }`)
+            console.log(`{ data: ${utils.toHex(callData)} }`)
         }
     }
     getCaller(resultOffset) {
         console.log(`getCaller(${resultOffset})`);
         const data = this.env.caller.padStart(40, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 20, data);
-        console.log(`{ caller: ${Utils.toHex(data)} }`);
+        console.log(`{ caller: ${utils.toHex(data)} }`);
     }
     getCallValue(resultOffset) {
         console.log(`getCallValue(${resultOffset})`);
         const data = this.env.callValue.padStart(32, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 16, data);
-        console.log(`{ value: ${Utils.toHex(data)} }`);
+        console.log(`{ value: ${utils.toHex(data)} }`);
     }
     getGasLeft() {
         console.log(`getGasLeft()`);
@@ -260,28 +247,28 @@ class Interface {
         console.log(`getTxGasPrice(${valueOffset})`);
         const data = this.env.txGasPrice.padStart(32, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(valueOffset, 16, data);
-        console.log(`{ price: ${Utils.toHex(data)} }`);
+        console.log(`{ price: ${utils.toHex(data)} }`);
     }
 
     getTxOrigin(resultOffset) {
         console.log(`getTxOrigin(${resultOffset})`);
         const data = this.env.txOrigin.padStart(40, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 20, data);
-        console.log(`{ orig: ${Utils.toHex(data)} }`);
+        console.log(`{ orig: ${utils.toHex(data)} }`);
     }
 
     getBlockCoinbase(resultOffset) {
         console.log(`getBlockCoinbase(${resultOffset})`);
         const data = this.env.blockCoinbase.padStart(40, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 20, data);
-        console.log(`{ coinbase: ${Utils.toHex(data)} }`);
+        console.log(`{ coinbase: ${utils.toHex(data)} }`);
     }
 
     getBlockDifficulty(resultOffset) {
         console.log(`getBlockDifficulty(${resultOffset})`);
         const data = this.env.blockDifficulty.padStart(64, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 32, data);
-        console.log(`{ difficulty: ${Utils.toHex(data)} }`);
+        console.log(`{ difficulty: ${utils.toHex(data)} }`);
     }
 
     getBlockGasLimit() {
@@ -348,7 +335,7 @@ async function main(path, callData, storage, env) {
     let vm = new VM(path);
     await vm.instantiate();
     vm.run(callData, storage, env);
-    return {returnData: Utils.toHex(vm.env.returnData), storage: vm.env.getStorage()};
+    return {returnData: utils.toHex(vm.env.returnData), storage: vm.env.getStorage()};
 };
 
 if (require.main === module) {
