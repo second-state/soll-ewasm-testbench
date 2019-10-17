@@ -240,7 +240,7 @@ class Interface {
     }
     getCaller(resultOffset) {
         console.log(`getCaller(${resultOffset})`);
-        const data = this.env.caller.padStart(40, '0').match(/.{2}/g).map(value => parseInt(value, 16));
+        const data = this.env.caller.padStart(40, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 20, data);
         console.log(`{ caller: ${Utils.toHex(data)} }`);
     }
