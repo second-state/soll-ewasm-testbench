@@ -318,12 +318,15 @@ class VM {
         this.vm = await WebAssembly.instantiate(fs.readFileSync(this.path), this.int.exports);
         this.int.mem = this.vm.instance.exports.memory;
     }
-    run(callData, storage) {
+    run(callData, storage, env) {
         if (!this.env.setCallData(callData)) {
             return false;
         }
         if (storage && !this.env.setStorage(storage)) {
             return false;
+        }
+        if (env) {
+            this.env = Object.assign(this.env, env);
         }
         try {
             this.vm.instance.exports.main();
@@ -336,7 +339,7 @@ class VM {
     }
 }
 
-async function main(path, callData, storage) {
+async function main(path, callData, storage, env) {
     for (let name in precompiled) {
         let vm = new VM(`lib/${name}.wasm`);
         await vm.instantiate();
@@ -344,7 +347,7 @@ async function main(path, callData, storage) {
     }
     let vm = new VM(path);
     await vm.instantiate();
-    vm.run(callData, storage);
+    vm.run(callData, storage, env);
     return {returnData: Utils.toHex(vm.env.returnData), storage: vm.env.getStorage()};
 };
 
