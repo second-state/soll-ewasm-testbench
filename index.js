@@ -18,7 +18,7 @@ class Environment {
         this.txOrigin = '1234567890123456789012345678901234567890';
         this.blockCoinbase = '1234567890123456789012345678901234567890';
         this.blockDifficulty = '0000000000000000000000000000000000000000000000000000405BBD86CA28';
-        this.gasLimit = 21000;
+        this.blockGasLimit = 21000;
         this.blockNumber = 3456;
         this.blockTimestamp = 6666;
     }
@@ -227,7 +227,7 @@ class Interface {
     }
     getCaller(resultOffset) {
         console.log(`getCaller(${resultOffset})`);
-        const data = this.env.caller.padStart(40, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
+        const data = this.env.caller.padStart(40, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 20, data);
         console.log(`{ caller: ${utils.toHex(data)} }`);
     }
@@ -273,20 +273,20 @@ class Interface {
 
     getBlockGasLimit() {
         console.log(`getBlockGasLimit()`);
-        console.log(`{ gas: ${this.env.gasLimit} }`);
-        return ;
+        console.log(`{ gas: ${this.env.blockGasLimit} }`);
+        return this.env.blockGasLimit;
     }
 
     getBlockNumber() {
         console.log(`getBlockNumber()`);
         console.log(`{ block: ${this.env.blockNumber} }`);
-        return ;
+        return this.env.blockNumber;
     }
 
     getBlockTimestamp() {
         console.log(`getBlockTimestamp()`);
         console.log(`{ timestamp: ${this.env.blockTimestamp} }`);
-        return ;
+        return this.env.blockTimestamp;
     }
 
     print32(value) {

@@ -45,7 +45,8 @@ describe('erc20', function() {
 
   it('check total supply', done => {
     const callData = functionSignature.totalSupply;
-    main(wasmFile, callData, storage).then(result => {
+    const env = {callValue: '0'};
+    main(wasmFile, callData, storage, env).then(result => {
       assert.equal(parseInt(result.returnData, 16), 1000);
     }).then(done).catch(err => done(err));
   });
