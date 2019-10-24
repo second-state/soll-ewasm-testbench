@@ -13,7 +13,7 @@ class Environment {
         this.callData = new Uint8Array(0);
         this.returnData = new Uint8Array(0);
         this.caller = '1234567890123456789012345678901234567890';
-        this.callValue = 'ffffffffffffffffffffffffffffffff';
+        this.callValue = '00000000000000000000000000000000';
         this.txGasPrice = '1f3f33ff5fabc5fdff67890feff12345';
         this.txOrigin = '1234567890123456789012345678901234567890';
         this.blockCoinbase = '1234567890123456789012345678901234567890';

@@ -27,7 +27,7 @@ describe('erc20', function() {
   it('deploy', done => {
     const deployWasmBin = fs.readFileSync(deployWasmFile);
     const wasmBin = fs.readFileSync(wasmFile);
-    const env = {caller: '7fffffff', callValue: '0'};
+    const env = {caller: '7fffffff'};
     main(deployWasmFile, utils.toHex(deployWasmBin), storage, env).then(result => {
       assert.equal(result.returnData, utils.toHex(wasmBin));
       storage = result.storage;
@@ -36,17 +36,15 @@ describe('erc20', function() {
 
   it('check balance of 0x7fffffff', done => {
     const address = '0x7fffffff';
-    const env = {callValue: '0'};
     const callData = functionSignature.balanceOf + utils.to256CallData(address);
-    main(wasmFile, callData, storage, env).then(result => {
+    main(wasmFile, callData, storage).then(result => {
       assert.equal(parseInt(result.returnData, 16), 1000);
     }).then(done).catch(err => done(err));
   });
 
   it('check total supply', done => {
     const callData = functionSignature.totalSupply;
-    const env = {callValue: '0'};
-    main(wasmFile, callData, storage, env).then(result => {
+    main(wasmFile, callData, storage).then(result => {
       assert.equal(parseInt(result.returnData, 16), 1000);
     }).then(done).catch(err => done(err));
   });
@@ -54,8 +52,8 @@ describe('erc20', function() {
   it('transfer 20 from 0x7fffffff to 0x01', done => {
     const to = '0x01';
     const amount = 20;
-    const env = {caller: '7fffffff', callValue: '0'};
     const callData = functionSignature.transfer + utils.to256CallData(to) + utils.to256CallData(amount);
+    const env = {caller: '7fffffff'};
     main(wasmFile, callData, storage, env).then(result => {
       assert.equal(parseInt(result.returnData, 16), 1);
       storage = result.storage;
@@ -64,9 +62,8 @@ describe('erc20', function() {
 
   it('check balance of 0x01', done => {
     const address = '01';
-    const env = {callValue: '0'};
     const callData = functionSignature.balanceOf + utils.to256CallData(address);
-    main(wasmFile, callData, storage, env).then(result => {
+    main(wasmFile, callData, storage).then(result => {
       assert.equal(parseInt(result.returnData, 16), 20);
     }).then(done).catch(err => done(err));
   });
@@ -74,8 +71,8 @@ describe('erc20', function() {
   it('approve 10 from 0x7fffffff for 0x01 to spend', done => {
     const address = '0x01';
     const amount = 10;
-    const env = {caller: '7fffffff', callValue: '0'};
     const callData = functionSignature.approve + utils.to256CallData(address) + utils.to256CallData(amount);
+    const env = {caller: '7fffffff'};
     main(wasmFile, callData, storage, env).then(result => {
       assert.equal(parseInt(result.returnData, 16), 1);
       storage = result.storage;
@@ -85,9 +82,8 @@ describe('erc20', function() {
   it('check allowance from 0x7fffffff by 0x01', done => {
     const owner = '0x7fffffff';
     const sender = '0x01';
-    const env = {callValue: '0'};
     const callData = functionSignature.allowance + utils.to256CallData(owner) + utils.to256CallData(sender);
-    main(wasmFile, callData, storage, env).then(result => {
+    main(wasmFile, callData, storage).then(result => {
       assert.equal(parseInt(result.returnData, 16), 10);
       storage = result.storage;
     }).then(done).catch(err => done(err));
@@ -97,9 +93,9 @@ describe('erc20', function() {
     const sender = '0x7fffffff';
     const recipient = '0x02';
     const amount = 3;
-    const env = {caller: '01', callValue: '0'};
     const callData = functionSignature.transferFrom + utils.to256CallData(sender)
       + utils.to256CallData(recipient) + utils.to256CallData(amount);
+    const env = {caller: '01'};
     main(wasmFile, callData, storage, env).then(result => {
       assert.equal(parseInt(result.returnData, 16), 1);
       storage = result.storage;
@@ -108,9 +104,8 @@ describe('erc20', function() {
 
   it('check balance of 0x7fffffff', done => {
     const address = '0x7fffffff';
-    const env = {callValue: '0'};
     const callData = functionSignature.balanceOf + utils.to256CallData(address);
-    main(wasmFile, callData, storage, env).then(result => {
+    main(wasmFile, callData, storage).then(result => {
       assert.equal(parseInt(result.returnData, 16), 1000 - 20 - 3);
       storage = result.storage;
     }).then(done).catch(err => done(err));
