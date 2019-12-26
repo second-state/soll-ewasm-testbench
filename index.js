@@ -21,6 +21,9 @@ class Environment {
         this.blockGasLimit = 21000;
         this.blockNumber = 3456;
         this.blockTimestamp = 6666;
+        this.blockhash = '0000000000000000000000000000000000000000000000000000000000000000';
+        this.address_balance = '00000000000000000000000000000000';
+        this.this_address = '5E72914535f202659083Db3a02C984188Fa26e9f';
     }
     setCallData(callData) {
         if (!/^([0-9a-f][0-9a-f])*$/i.test(callData)) {
@@ -89,10 +92,16 @@ class Interface {
             'getTxOrigin',
             'getBlockCoinbase',
             'getBlockDifficulty',
+            'returnDataSize',
+            'getBlockHash',
+            'getExternalBalance',
+            'getAddress',
         ];
         this.hooks = [
             'getGasLeft',
             'callStatic',
+            'call',
+            'callDelegate',
             'getBlockGasLimit',
             'getBlockNumber',
             'getBlockTimestamp',
@@ -217,6 +226,52 @@ class Interface {
         this.env.returnData = vm.env.returnData;
         return 0;
     }
+    call(gas, addressOffset, valueOffset, dataOffset, dataLength) {
+        console.log(`call(${gas}, ${addressOffset}, ${valueOffset}, ${dataOffset}, ${dataLength})`);
+        const address = utils.toBigInt('0x' + utils.toHex(this.getMemory(addressOffset, 20)));
+        const data = this.getMemory(dataOffset, dataLength);
+        console.log(`{ address: ${address}, data: ${utils.toHex(data)} }`);
+
+        let vm;
+        switch (address) {
+            case BigInt(2): // Sha256
+            case BigInt(9): // Keccak256
+                vm = precompiled.keccak256;
+                break;
+            default:
+                return 1;
+        }
+        vm.run(utils.toHex(data));
+
+        this.env.returnData = vm.env.returnData;
+        return 0;
+    }
+    callDelegate(gas, addressOffset, dataOffset, dataLength) {
+        console.log(`callDelegate(${gas}, ${addressOffset}, ${dataOffset}, ${dataLength})`);
+        const address = utils.toBigInt('0x' + utils.toHex(this.getMemory(addressOffset, 20)));
+        const data = this.getMemory(dataOffset, dataLength);
+        console.log(`{ address: ${address}, data: ${utils.toHex(data)} }`);
+
+        let vm;
+        switch (address) {
+            case BigInt(2): // Sha256
+            case BigInt(9): // Keccak256
+                vm = precompiled.keccak256;
+                break;
+            default:
+                return 1;
+        }
+        vm.run(utils.toHex(data));
+
+        this.env.returnData = vm.env.returnData;
+        return 0;
+    }
+    returnDataSize() {
+        console.log(`returnDataSize()`);
+        this.takeGas(2);
+        console.log(`{ size: ${this.env.returnData.length} }`);
+        return this.env.returnData.length;
+    }
     returnDataCopy(resultOffset, dataOffset, length) {
         console.log(`returnDataCopy(${resultOffset}, ${dataOffset}, ${length})`);
         if (length) {
@@ -287,6 +342,27 @@ class Interface {
         console.log(`getBlockTimestamp()`);
         console.log(`{ timestamp: ${this.env.blockTimestamp} }`);
         return this.env.blockTimestamp;
+    }
+
+    getBlockHash(resultOffset) {
+        console.log(`getBlockHash(${resultOffset})`);
+        const data = this.env.blockhash.padStart(64, '0').match(/.{2}/g).map(value => parseInt(value, 16));
+        this.setMemory(resultOffset, 32, data);
+        console.log(`{ blockhash: ${utils.toHex(data)} }`);
+    }
+
+    getExternalBalance(resultOffset) {
+        console.log(`getExternalBalance(${resultOffset})`);
+        const data = this.env.address_balance.padStart(32, '0').match(/.{2}/g).map(value => parseInt(value, 16));
+        this.setMemory(resultOffset, 16, data);
+        console.log(`{ value: ${utils.toHex(data)} }`);
+    }
+
+    getAddress(resultOffset) {
+        console.log(`getAddress(${resultOffset})`);
+        const data = this.env.this_address.padStart(40, '0').match(/.{2}/g).map(value => parseInt(value, 16));
+        this.setMemory(resultOffset, 20, data);
+        console.log(`{ orig: ${utils.toHex(data)} }`);
     }
 
     print32(value) {
