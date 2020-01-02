@@ -93,7 +93,6 @@ class Interface {
             'getBlockCoinbase',
             'getBlockDifficulty',
             'returnDataSize',
-            'getBlockHash',
             'getExternalBalance',
             'getAddress',
         ];
@@ -104,6 +103,7 @@ class Interface {
             'callDelegate',
             'getBlockGasLimit',
             'getBlockNumber',
+            'getBlockHash',
             'getBlockTimestamp',
         ];
     }
@@ -344,11 +344,12 @@ class Interface {
         return this.env.blockTimestamp;
     }
 
-    getBlockHash(resultOffset) {
+    getBlockHash(number, resultOffset) {
         console.log(`getBlockHash(${resultOffset})`);
         const data = this.env.blockhash.padStart(64, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 32, data);
         console.log(`{ blockhash: ${utils.toHex(data)} }`);
+        return 0;
     }
 
     getExternalBalance(resultOffset) {
