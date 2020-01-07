@@ -21,17 +21,19 @@ class Environment {
         this.blockGasLimit = 21000;
         this.blockNumber = 3456;
         this.blockTimestamp = 6666;
-        this.blockhash = '0000000000000000000000000000000000000000000000000000000000000000';
-        this.address_balance = '00000000000000000000000000000000';
+        this.blockhash = '1234567890123456789012345678901234567890123456789012345678901234';
+        this.address_balance = '12345678901234567890123456789012';
         this.this_address = '5E72914535f202659083Db3a02C984188Fa26e9f';
     }
     setCallData(callData) {
-        if (!/^([0-9a-f][0-9a-f])*$/i.test(callData)) {
+        if (!/(^[0-9a-f]+)?/i.test(callData)) {
             console.log(`except hex encoded calldata, got: ${callData}`);
             return false;
         }
         if (callData.length > 0){
-            this.callData = new Uint8Array(callData.length / 2).fill(0x00);
+            if (callData.length % 2)
+                callData = "0" + callData;
+            this.callData = new Uint8Array(callData.length / 2).fill(0x00);;
             callData.match(/.{2}/g).forEach((value, i) => {
                 this.callData[i] = parseInt(value, 16);
             });
@@ -208,9 +210,10 @@ class Interface {
     }
     callStatic(gas, addressOffset, dataOffset, dataLength) {
         console.log(`callStatic(${gas}, ${addressOffset}, ${dataOffset}, ${dataLength})`);
-        const address = utils.toBigInt('0x' + utils.toHex(this.getMemory(addressOffset, 20)));
+        const addressInHex = '0x' + utils.toHex(this.getMemory(addressOffset, 20));
+        const address = utils.toBigInt(addressInHex);
         const data = this.getMemory(dataOffset, dataLength);
-        console.log(`{ address: ${address}, data: ${utils.toHex(data)} }`);
+        console.log(`{ address: ${addressInHex}, data: ${utils.toHex(data)} }`);
 
         let vm;
         switch (address) {
@@ -228,9 +231,11 @@ class Interface {
     }
     call(gas, addressOffset, valueOffset, dataOffset, dataLength) {
         console.log(`call(${gas}, ${addressOffset}, ${valueOffset}, ${dataOffset}, ${dataLength})`);
-        const address = utils.toBigInt('0x' + utils.toHex(this.getMemory(addressOffset, 20)));
+        const addressInHex = '0x' + utils.toHex(this.getMemory(addressOffset, 20));
+        const address = utils.toBigInt(addressInHex);
+        const value = utils.toBigInt('0x' + utils.toHex(this.getMemory(valueOffset, 16))).toString(16);
         const data = this.getMemory(dataOffset, dataLength);
-        console.log(`{ address: ${address}, data: ${utils.toHex(data)} }`);
+        console.log(`{ address: ${addressInHex}, value: ${value}, data: ${utils.toHex(data)} }`);
 
         let vm;
         switch (address) {
@@ -248,9 +253,10 @@ class Interface {
     }
     callDelegate(gas, addressOffset, dataOffset, dataLength) {
         console.log(`callDelegate(${gas}, ${addressOffset}, ${dataOffset}, ${dataLength})`);
-        const address = utils.toBigInt('0x' + utils.toHex(this.getMemory(addressOffset, 20)));
+        const addressInHex = '0x' + utils.toHex(this.getMemory(addressOffset, 20));
+        const address = utils.toBigInt(addressInHex);
         const data = this.getMemory(dataOffset, dataLength);
-        console.log(`{ address: ${address}, data: ${utils.toHex(data)} }`);
+        console.log(`{ address: ${addressInHex}, data: ${utils.toHex(data)} }`);
 
         let vm;
         switch (address) {
@@ -352,11 +358,13 @@ class Interface {
         return 0;
     }
 
-    getExternalBalance(resultOffset) {
-        console.log(`getExternalBalance(${resultOffset})`);
+    getExternalBalance(addressOffset, resultOffset) {
+        console.log(`getExternalBalance(${addressOffset}, ${resultOffset})`);
+        const addressInHex = '0x' + utils.toHex(this.getMemory(addressOffset, 20));
+        const address = utils.toBigInt(addressInHex);
         const data = this.env.address_balance.padStart(32, '0').match(/.{2}/g).map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 16, data);
-        console.log(`{ value: ${utils.toHex(data)} }`);
+        console.log(`{ address: ${addressInHex}, value: ${utils.toHex(data)} }`);
     }
 
     getAddress(resultOffset) {
