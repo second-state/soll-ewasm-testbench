@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 'strict';
 let fs = require('fs');
 let utils = require('./utils');
@@ -9,6 +10,7 @@ let precompiled = {
 class Environment {
     constructor() {
         this.storage = {};
+        this.transactionReceipt = {};
         this.gasLeft = 65536;
         this.callData = new Uint8Array(0);
         this.returnData = new Uint8Array(0);
@@ -30,7 +32,7 @@ class Environment {
             console.log(`except hex encoded calldata, got: ${callData}`);
             return false;
         }
-        if (callData.length > 0){
+        if (callData.length > 0) {
             if (callData.length % 2)
                 callData = "0" + callData;
             this.callData = new Uint8Array(callData.length / 2).fill(0x00);;
@@ -52,10 +54,8 @@ class Environment {
 class Interface {
     get exports() {
         let ret = {
-            ethereum: {
-            },
-            debug: {
-            },
+            ethereum: {},
+            debug: {},
         };
 
         // binding EEI functions
@@ -115,7 +115,9 @@ class Interface {
             hooks[method] = this[method].bind(this);
         });
         // EEI hook function injection
-        this.eei_wrapper = await WebAssembly.instantiate(fs.readFileSync("lib/wrapper.wasm"), { ethereum: hooks});
+        this.eei_wrapper = await WebAssembly.instantiate(fs.readFileSync("lib/wrapper.wasm"), {
+            ethereum: hooks
+        });
     }
     getMemory(offset, length) {
         return new Uint8Array(this.mem.buffer, offset, length);
@@ -174,24 +176,30 @@ class Interface {
         console.log(`log(${dataOffset}, ${dataLength}, ${numberOfTopics}, ${topic1}, ${topic2}, ${topic3}, ${topic4})`);
         this.takeGas(375 + (375 * numberOfTopics) + (8 * dataLength));
         if (dataLength >= 1) {
-            const data = this.getMemory(dataOffset, dataLength);
-            console.log(`{ data: ${utils.toHex(data)} }`);
+            const data = utils.toHex(this.getMemory(dataOffset, dataLength));
+            this.env.transactionReceipt.data = data;
+            console.log(`{ data: ${data} }`);
         }
         if (numberOfTopics >= 1) {
-            const t1 = this.getMemory(topic1, 32);
-            console.log(`{ signature: ${utils.toHex(t1)} }`);
+            this.env.transactionReceipt.topics = [];
+            const t1 = utils.toHex(this.getMemory(topic1, 32));
+            this.env.transactionReceipt.topics.push(t1);
+            console.log(`{ t1/signature: ${t1} }`);
         }
         if (numberOfTopics >= 2) {
-            const t2 = this.getMemory(topic2, 32);
-            console.log(`{ t2: ${utils.toHex(t2)} }`);
+            const t2 = utils.toHex(this.getMemory(topic2, 32));
+            this.env.transactionReceipt.topics.push(t2);
+            console.log(`{ t2: ${t2} }`);
         }
         if (numberOfTopics >= 3) {
-            const t3 = this.getMemory(topic3, 32);
-            console.log(`{ t3: ${utils.toHex(t3)} }`);
+            const t3 = utils.toHex(this.getMemory(topic3, 32));
+            this.env.transactionReceipt.topics.push(t3);
+            console.log(`{ t3: ${t3} }`);
         }
         if (numberOfTopics >= 4) {
-            const t4 = this.getMemory(topic4, 32);
-            console.log(`{ t4: ${utils.toHex(t4)} }`);
+            const t4 = utils.toHex(this.getMemory(topic4, 32));
+            this.env.transactionReceipt.topics.push(t4);
+            console.log(`{ t4: ${t4} }`);
         }
     }
     finish(dataOffset, dataLength) {
@@ -204,7 +212,9 @@ class Interface {
         console.log(`revert(${dataOffset}, ${dataLength})`);
         const data = this.getMemory(dataOffset, dataLength)
         this.env.returnData = data;
-        console.log(`{ message: ${String.fromCharCode.apply(null, data)} }`);
+        const message = String.fromCharCode.apply(null, data);
+        this.env.transactionReceipt.revertReason = message;
+        console.log(`{ message: ${message} }`);
         throw new Error('revert');
         process.exit(0);
     }
@@ -420,7 +430,11 @@ async function main(path, callData, storage, env) {
     let vm = new VM(path);
     await vm.instantiate();
     vm.run(callData, storage, env);
-    return {returnData: utils.toHex(vm.env.returnData), storage: vm.env.getStorage()};
+    return {
+        returnData: utils.toHex(vm.env.returnData),
+        storage: vm.env.getStorage(),
+        transactionReceipt: vm.env.transactionReceipt
+    };
 };
 
 if (require.main === module) {

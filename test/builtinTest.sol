@@ -21,6 +21,7 @@ contract BuiltinTest {
   uint txOriginBalance;
   address this_;
 
+  event Test(address indexed addr, uint256 indexed value, uint256 value2);
 
   function TestMsgSender() public {
     msgSender = msg.sender;
@@ -80,5 +81,9 @@ contract BuiltinTest {
 
   function TestThis() public {
     this_ = address(this);
+  }
+
+  function TestEvent() public {
+    emit Test(msg.sender, uint(123), uint(456));
   }
 }

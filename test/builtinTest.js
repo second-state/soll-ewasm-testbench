@@ -30,6 +30,7 @@ describe('builtinTest', function() {
     testKeccak256: '78383f2b',
     testAddressBalance: '9fa9e2e6',
     testThis: 'b658ed64',
+    testEvent: '24ec1d3f',
   };
   let storage = '{}';
 
@@ -149,6 +150,16 @@ describe('builtinTest', function() {
     const callData = functionSignature.testThis;
     main(wasmFile, callData, storage).then(result => {
       assert.equal(JSON.parse(result.storage)['10'], '5e72914535f202659083db3a02c984188fa26e9f');
+    }).then(done).catch(err => done(err));
+  });
+
+  it('check event', done => {
+    const callData = functionSignature.testEvent;
+    main(wasmFile, callData, storage).then(result => {
+      assert.equal(result.transactionReceipt.data, '00000000000000000000000000000000000000000000000000000000000001c8');
+      assert.equal(result.transactionReceipt.topics[0], 'e9b9381c33cd3a4b41d7c0f0c70a8bb84387e96ff0a4abf2b9dfe092f73609dd');
+      assert.equal(result.transactionReceipt.topics[1], '0000000000000000000000001234567890123456789012345678901234567890');
+      assert.equal(result.transactionReceipt.topics[2], '000000000000000000000000000000000000000000000000000000000000007b');
     }).then(done).catch(err => done(err));
   });
 });
