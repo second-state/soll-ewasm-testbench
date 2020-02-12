@@ -2,7 +2,7 @@
 // RUN: %soll %s
 pragma solidity ^0.5.0;
 
-contract BuiltinTest {
+contract Builtin {
   address msgSender;
   uint msgValue;
   bytes msgData;
@@ -15,75 +15,75 @@ contract BuiltinTest {
   uint gasLeft;
   uint txGasPrice;
   address txOrigin;
-  uint addmodResult;
-  uint mulmodResult;
   bytes32 keccak256Result;
   uint txOriginBalance;
   address this_;
+  bytes encodeResult;
+  bytes encodePackedResult;
 
   event Test(address indexed addr, uint256 indexed value, uint256 value2);
 
-  function TestMsgSender() public {
+  function testMsgSender() public {
     msgSender = msg.sender;
   }
 
-  function TestMsgValue() public payable {
+  function testMsgValue() public payable {
     msgValue = msg.value;
   }
 
-  function TestMsgData() public {
+  function testMsgData() public {
     msgData = msg.data;
   }
 
-  function TestBlockCoinbase() public {
+  function testBlockCoinbase() public {
     bkCoinbase = block.coinbase;
   }
 
-  function TestBlockDifficulty() public {
+  function testBlockDifficulty() public {
     bkDifficulty = block.difficulty;
   }
 
-  function TestBlockGasLimit() public {
+  function testBlockGasLimit() public {
     bkGasLimit = block.gaslimit;
   }
 
-  function TestBlockNumber() public {
+  function testBlockNumber() public {
     bkBlockNumber = block.number;
   }
 
-  function TestBlockTimestamp() public {
+  function testBlockTimestamp() public {
     bkBlockTimestamp = block.timestamp;
   }
 
-  function TestBlockHash(uint bk) public {
+  function testBlockHash(uint bk) public {
     bkHash = blockhash(bk);
   }
 
-  function TestGasLeft() public {
+  function testGasLeft() public {
     gasLeft = gasleft();
   }
 
-  function TestTxGasPrice() public {
+  function testTxGasPrice() public {
     txGasPrice = tx.gasprice;
   }
 
-  function TestTxOrig() public {
+  function testTxOrig() public {
     txOrigin = tx.origin;
   }
 
-  function TestKeccak256(bytes memory input) public {
+  function testKeccak256(bytes memory input) public {
     keccak256Result = keccak256(input);
   }
 
-  function TestAddressBalance() public {
+  function testAddressBalance() public {
     txOriginBalance = tx.origin.balance;
   }
 
-  function TestThis() public {
+  function testThis() public {
     this_ = address(this);
   }
 
-  function TestEvent() public {
+  function testEvent() public {
     emit Test(msg.sender, uint(123), uint(456));
   }
 }
