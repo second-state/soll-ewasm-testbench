@@ -86,4 +86,30 @@ contract Builtin {
   function testEvent() public {
     emit Test(msg.sender, uint(123), uint(456));
   }
+
+  function testEncode() public payable {
+    uint8 u8 = 0x11;
+    uint32 u32 = 0x2222;
+    uint64 u64 = 0x33333333;
+    uint128 u128 = 0x44444444444444444;
+    uint256 u256 = 0x5555555555555555555555555555555555;
+    address a = address(0x123);
+    bool b = true;
+    string memory s = "SecondState";
+    bytes memory bs = "SOLL";
+    encodeResult = abi.encode(u8, u32, u64, a, abi.encode(u128, u256, b, s), bs);
+  }
+
+  function testEncodePacked() public payable {
+    uint8 u8 = 0x11;
+    uint32 u32 = 0x2222;
+    uint64 u64 = 0x33333333;
+    uint128 u128 = 0x44444444444444444;
+    uint256 u256 = 0x5555555555555555555555555555555555;
+    address a = address(0x123);
+    bool b = true;
+    string memory s = "SecondState";
+    bytes memory bs = "SOLL";
+    encodePackedResult = abi.encodePacked(u8, u32, u64, a, abi.encodePacked(u128, u256, b, s), bs);
+  }
 }
