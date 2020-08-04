@@ -316,7 +316,7 @@ class Interface {
 
     getTxGasPrice(valueOffset) {
         console.log(`getTxGasPrice(${valueOffset})`);
-        const data = this.env.txGasPrice.padStart(32, '0').match(/.{2}/g).map(value => parseInt(value, 16));
+        const data = this.env.txGasPrice.padStart(32, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
         this.setMemory(valueOffset, 16, data);
         console.log(`{ price: ${utils.toHex(data)} }`);
     }
@@ -337,7 +337,7 @@ class Interface {
 
     getBlockDifficulty(resultOffset) {
         console.log(`getBlockDifficulty(${resultOffset})`);
-        const data = this.env.blockDifficulty.padStart(64, '0').match(/.{2}/g).map(value => parseInt(value, 16));
+        const data = this.env.blockDifficulty.padStart(64, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 32, data);
         console.log(`{ difficulty: ${utils.toHex(data)} }`);
     }
@@ -372,7 +372,7 @@ class Interface {
         console.log(`getExternalBalance(${addressOffset}, ${resultOffset})`);
         const addressInHex = '0x' + utils.toHex(this.getMemory(addressOffset, 20));
         const address = utils.toBigInt(addressInHex);
-        const data = this.env.address_balance.padStart(32, '0').match(/.{2}/g).map(value => parseInt(value, 16));
+        const data = this.env.address_balance.padStart(32, '0').match(/.{2}/g).reverse().map(value => parseInt(value, 16));
         this.setMemory(resultOffset, 16, data);
         console.log(`{ address: ${addressInHex}, value: ${utils.toHex(data)} }`);
     }
